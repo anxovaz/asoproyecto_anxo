@@ -1,12 +1,23 @@
 import docker
 import os
 import time
+import subprocess
 
 client = docker.from_env()
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 print(f"El directorio actual del script es: {current_directory}")
 
+def parar_systemresolved():
+    try:
+        subprocess.run(["sudo", "systemctl", "stop", "systemd-resolved"], check=True)
+        print("Servicio systemd-resolved detenido exitosamente.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error al ejecutar el comando: {e}")
+    except FileNotFoundError:
+        print("Comando no encontrado. Asegúrate de tener 'systemctl' instalado.")
+
+parar_systemresolved()
 def crear_red():
     try:
         # Crear el cliente Docker
@@ -86,12 +97,18 @@ def apacheserver():
     try:
         container = client.containers.run(
             "php:7.4-apache",
-            name=nombre_contenedor_apache,  # Asignar un nombre único al contenedor
+            name=nombre_contenedor_apache,
+            network="red",
+            detach=True,
             volumes={html_file_path: {"bind": "/var/www/html/index.html", "mode": "ro"}},
-            ports={'80/tcp': 80},  # Exponer el puerto 80
-            network="red",  # Usar la red llamada 'red'
-            detach=True           # Ejecuta el contenedor en segundo plano
-            )
+            ports={'80/tcp': 80},
+            # Configuración especial para IP fija
+            networking_config={
+                'red': client.api.create_endpoint_config(
+                    ipv4_address="192.168.250.10"
+                )
+            }
+        )
         print(f"Contenedor {nombre_contenedor_apache} ejecutándose. Accede a http://localhost en tu navegador.")
     except docker.errors.APIError as e:
         print(f"Error al crear el contenedor: {e}")
@@ -115,16 +132,19 @@ def bind9server():
     try:
         container = client.containers.run(
             "ubuntu/bind9",
-            name=nombrecontenedor_bind9,  # Asignar un nombre único al contenedor
-            volumes = {
-                conf_bind9_ruta: {"bind": "/etc/bind", "mode": "ro"},
-                zonas_bind9_ruta: {"bind": "/var/lib/bind", "mode": "ro"}
-                },
-            ports={'54/tcp': 54, "54/udp": 54},  # Exponer el puerto 54
-            network="red", 
-            detach=True          # Ejecuta el contenedor en segundo plano
-            )
-        print(f"Contenedor {nombrecontenedor_bind9} ejecutándose. Accede a http://localhost en tu navegador.")
+            name=nombrecontenedor_bind9,
+            network="red",
+            detach=True,
+            volumes={conf_bind9_ruta: {"bind": "/etc/bind", "mode": "ro"},
+                    zonas_bind9_ruta: {"bind": "/var/lib/bind", "mode": "rw"}},
+            ports={'53/tcp': 53, "53/udp": 53},
+            networking_config={
+                'red': client.api.create_endpoint_config(
+                    ipv4_address="192.168.250.20"
+                )
+            }
+        )
+        print(f"Contenedor {nombrecontenedor_bind9} ejecutándose.")
     except docker.errors.APIError as e:
         print(f"Error al crear el contenedor: {e}")
 
