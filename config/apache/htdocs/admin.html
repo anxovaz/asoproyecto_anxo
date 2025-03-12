@@ -40,7 +40,7 @@
             border-radius: 5px;
         }
         button.stop {
-            background-color: #f44336;
+            background-color: #ece911;
             color: white;
         }
         button.start {
@@ -50,8 +50,10 @@
         button.continue {
             background-color: #2196F3;
             color: white;
-        }
-    </style>
+        }button.erase {
+            background-color: #fc0000;
+            color: white;
+        }    </style>
 </head>
 <body>
 
@@ -63,22 +65,35 @@
         <div class="contenedor">
             <h2>Apache</h2>
             <p style="color: red;">*Contenedor esencial para administración</p>
-            <form action="control_contenedor.php" method="POST">
+            <form action="apache.php" method="POST">
                 <input type="hidden" name="contenedor" value="apache">
                 <button type="submit" name="accion" value="parar" class="stop">Parar</button>
                 <button type="submit" name="accion" value="arrancar" class="start">Arrancar</button>
                 <button type="submit" name="accion" value="continuar" class="continue">Continuar</button>
+                <button type="submit" name="accion" value="eliminar" class="erase">Continuar</button>
             </form>
         </div>
 
         <!-- Contenedor Bind9 -->
         <div class="contenedor">
             <h2>Bind9</h2>
-            <form action="control_contenedor.php" method="POST">
+            <form action="bind9.php" method="POST">
                 <input type="hidden" name="contenedor" value="bind9">
                 <button type="submit" name="accion" value="parar" class="stop">Parar</button>
                 <button type="submit" name="accion" value="arrancar" class="start">Arrancar</button>
                 <button type="submit" name="accion" value="continuar" class="continue">Continuar</button>
+                <button type="submit" name="accion" value="eliminar" class="erase">Continuar</button>
+            </form>
+        </div>
+        <!-- Contenedor Samba -->
+        <div class="contenedor">
+            <h2>Samba</h2>
+            <form action="samba.php" method="POST">
+                <input type="hidden" name="contenedor" value="bind9">
+                <button type="submit" name="accion" value="parar" class="stop">Parar</button>
+                <button type="submit" name="accion" value="arrancar" class="start">Arrancar</button>
+                <button type="submit" name="accion" value="continuar" class="continue">Continuar</button>
+                <button type="submit" name="accion" value="eliminar" class="erase">Continuar</button>
             </form>
         </div>
     </div>

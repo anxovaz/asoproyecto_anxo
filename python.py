@@ -18,7 +18,50 @@ def parar_systemresolved():
     except FileNotFoundError:
         print("Comando no encontrado. Asegúrate de tener 'systemctl' instalado.")
 
-parar_systemresolved()
+def reanudar_systemresolved():
+    try:
+        subprocess.run(["sudo", "systemctl", "restart", "systemd-resolved"], check=True)
+        print("Servicio systemd-resolved reiniciado exitosamente.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error al ejecutar el comando: {e}")
+    except FileNotFoundError:
+        print("Comando no encontrado. Asegúrate de tener 'systemctl' instalado.")
+
+def parar_contenedor(parar_contenedor):
+    client = docker.from_env()
+    containers = client.containers.list(all=True)
+    container_exists = False
+    container_to_remove = None
+
+    for container in containers:
+        if container.name == parar_contenedor:
+            container_exists = True
+            container_to_stop = container
+            break
+    if container_exists:
+        print(f"Contenedor '{parar_contenedor}' encontrado, deteniéndolo.")
+        container_to_stop.stop()  # Detener el contenedor si está en ejecución
+        print(f"Contenedor '{parar_contenedor}' detenido.")
+    else:
+        print(f"El contenedor '{parar_contenedor}' no existe.")
+  
+def continuar_contenedor(continuar_contenedor):
+    client = docker.from_env()
+    containers = client.containers.list(all=True)
+    container_exists = False
+    container_to_continue = None
+
+    for container in containers:
+        if container.name == continuar_contenedor:
+            container_exists = True
+            container_to_continue = container
+            break
+    if container_exists:
+        print(f"Contenedor '{continuar_contenedor}' encontrado, continuándolo.")
+        container_to_continue.start()  # Detener el contenedor si está en ejecución
+        print(f"Contenedor '{continuar_contenedor}' reanuado.")
+    else:
+        print(f"El contenedor '{continuar_contenedor}' no existe.")
 
 def crear_red():
     try:
@@ -41,7 +84,7 @@ def crear_red():
         print(f"Error al crear la red: {e}")
 
 # Llamar a la función para crear la red
-crear_red()
+
 
 
 def eliminar_contenedor(nombre_contenedor):
@@ -181,10 +224,50 @@ def samba():
 
 
 # Verificar si el parámetro pasado es "samba"
-if len(sys.argv) > 1 and sys.argv[1] == "samba":
+if len(sys.argv) > 1 and sys.argv[1] == "--launch-samba":
     samba()
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--stop-samba":
+    parar_contenedor("samba")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--continue-samba":
+    continuar_contenedor("samba")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--launch-apache":
     apacheserver()
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--stop-apache":
+    parar_contenedor("apache")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--continue-apache":
+    continuar_contenedor("apache")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--launch-bind9":
+    parar_systemresolved()
     bind9server()
+   
+elif len(sys.argv) > 1 and sys.argv[1] == "--stop-bind9":
+    parar_contenedor("bind9")
+    reanudar_systemresolved()
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--continue-bind9":
+    parar_systemresolved()
+    continuar_contenedor("bind9")
+    
+elif len(sys.argv) > 1 and sys.argv[1] == "--help":
+    print("--launch-samba")
+    print("--stop-samba")
+    print("--continue-samba")
+    print("--launch-apache")
+    print("--stop-apache")
+    print("--continue-apache")
+    print("--launch-bind9")
+    print("--stop-bind9")
+    print("--continue-bind9")
+    print("--help")
+
 else:
     apacheserver()
+    parar_systemresolved()
     bind9server()
+    crear_red()
