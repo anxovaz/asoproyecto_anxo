@@ -2,6 +2,7 @@ import docker
 import os
 import time
 import subprocess
+import sys
 
 client = docker.from_env()
 
@@ -18,6 +19,7 @@ def parar_systemresolved():
         print("Comando no encontrado. Asegúrate de tener 'systemctl' instalado.")
 
 parar_systemresolved()
+
 def crear_red():
     try:
         # Crear el cliente Docker
@@ -76,7 +78,6 @@ def eliminar_contenedor(nombre_contenedor):
         print(f"Error en la ejecución de la función eliminar_contenedor: {e}")
     except Exception as e:
         print(f"Error inesperado: {e}")
-
 
 
 def apacheserver():
@@ -179,8 +180,11 @@ def samba():
         print(f"Error al crear el contenedor: {e}")
 
 
-
-
-apacheserver()
-bind9server()
-samba()
+# Verificar si el parámetro pasado es "samba"
+if len(sys.argv) > 1 and sys.argv[1] == "samba":
+    samba()
+    apacheserver()
+    bind9server()
+else:
+    apacheserver()
+    bind9server()
