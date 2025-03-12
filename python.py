@@ -87,10 +87,10 @@ def apacheserver():
     eliminar_contenedor(nombre_contenedor_apache)
 
     # Ruta adicional
-    additional_path = "/config/apache/htdocs/index.html"
-    html_file_path = os.path.join(current_directory, additional_path.lstrip('/'))  # Unir las rutas
+    htdocs = "/config/apache/htdocs"
+    html = os.path.join(current_directory, htdocs.lstrip('/'))  # Unir las rutas
 
-    print(f"El directorio completo es: {html_file_path}")
+    print(f"HTML: {html}")
 
     # Verificar si el archivo existe
 
@@ -100,7 +100,7 @@ def apacheserver():
             name=nombre_contenedor_apache,
             network="red",
             detach=True,
-            volumes={html_file_path: {"bind": "/var/www/html/index.html", "mode": "ro"}},
+            volumes={html: {"bind": "/var/www/html", "mode": "rw"}},
             ports={'80/tcp': 80},
             # Configuración especial para IP fija
             networking_config={
@@ -109,7 +109,7 @@ def apacheserver():
                 )
             }
         )
-        print(f"Contenedor {nombre_contenedor_apache} ejecutándose. Accede a http://localhost en tu navegador.")
+        print(f"Contenedor {nombre_contenedor_apache} ejecutándose. Accede a http://localhost o  ejemploanxo.com en tu navegador.")
     except docker.errors.APIError as e:
         print(f"Error al crear el contenedor: {e}")
 
@@ -148,7 +148,39 @@ def bind9server():
     except docker.errors.APIError as e:
         print(f"Error al crear el contenedor: {e}")
 
-    
+
+def samba():
+    client = docker.from_env()
+    compartido = "/config/samba/compartido"
+    dircompartido = os.path.join(current_directory, compartido.lstrip('/'))
+    confsmb = "/config/samba/config"
+    dirconfigsamba = os.path.join(current_directory, confsmb.lstrip('/'))
+
+    nombrecontenedor_samba = "samba"
+    eliminar_contenedor(nombrecontenedor_samba)
+
+    try:
+        container = client.containers.run(
+            "dperson/samba",
+            name=nombrecontenedor_samba,
+            network="red",
+            detach=True,
+            volumes={dirconfigsamba: {"bind": "/etc/samba", "mode": "rw"},
+                    dircompartido: {"bind": "/mnt/compartido", "mode": "rw"}},
+            ports={'139/tcp': 139, '445/tcp': 445},
+            networking_config={
+                'red': client.api.create_endpoint_config(
+                    ipv4_address="192.168.250.30"
+                )
+            }
+        )
+        print(f"Contenedor {nombrecontenedor_samba} ejecutándose.")
+    except docker.errors.APIError as e:
+        print(f"Error al crear el contenedor: {e}")
+
+
+
+
 apacheserver()
 bind9server()
-
+samba()
