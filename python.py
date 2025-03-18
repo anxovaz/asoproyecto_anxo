@@ -11,19 +11,26 @@ print(f"El directorio actual del script es: {current_directory}")
 
 def apache_local():
     try:
-        subprocess.run(["sudo", "apt", "update", "-y"], check=True)
-        subprocess.run(["sudo", "apt", "autoremove", "apache2", "-y"], check=True)
-        subprocess.run(["sudo", "apt", "install", "apache2", "-y"], check=True)
+        print("Reinstalando apache2...")
+        subprocess.run(["sudo", "apt", "update", "-y"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
+        subprocess.run(["sudo", "apt", "autoremove", "apache2", "-y"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
+        subprocess.run(["sudo", "apt", "install", "apache2", "-y"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
         ruta_conf_apache_local = "/config/apache_local/conf"
         conf_apache_local = os.path.join(current_directory, ruta_conf_apache_local.lstrip('/'))
         ruta_html_apache_local = "/config/apache_local/html"
         html_apache_local = os.path.join(current_directory, ruta_html_apache_local.lstrip('/'))
-        subprocess.run(["sudo", "rm", "-rf", "/var/www/html/*"])
-        subprocess.run(["sudo", "cp", "-r", conf_apache_local, "/etc/apache2/"])
-        subprocess.run(["sudo", "cp", "-r", html_apache_local, "/var/www/"])
-        subprocess.run(["sudo", "systemctl", "start", "apache2"], check=True)
-        subprocess.run(["sudo", "systemctl", "enable", "apache2"], check=True)
-
+        ruta_script = "python.py"
+        script_apache_local = os.path.join(current_directory, ruta_script)
+        print("Copiando archivos de configuración")
+        subprocess.run(["sudo", "rm", "-rf", "/var/www/html/*"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
+        subprocess.run(["sudo", "cp", "-r", conf_apache_local, "/etc/apache2/"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
+        subprocess.run(["sudo", "cp", "-r", html_apache_local, "/var/www/"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
+        subprocess.run(["sudo", "cp", script_apache_local, "/mnt/"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
+        subprocess.run(["sudo", "chmod", "777", "/mnt/python.py"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
+        subprocess.run(["sudo", "systemctl", "start", "apache2"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
+        subprocess.run(["sudo", "systemctl", "enable", "apache2"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
+        print("Accede a localhost:8080 para administrar los contenedores")
+        
     except subprocess.CalledProcessError as e:
         print(f"Error al instalar: {e}")
         

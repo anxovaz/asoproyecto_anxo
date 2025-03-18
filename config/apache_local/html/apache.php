@@ -15,16 +15,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Comando dependiendo de la acción
         switch ($accion) {
             case '--stop-apache':
-                echo ejecutar_comando('python3 /var/python.py --stop-apache');
+                echo ejecutar_comando('python3 /mnt/python.py --stop-apache');
                 break;
             case '--launch-apache':
-                echo ejecutar_comando('python3 /var/python.py --launch-apache');
+                echo ejecutar_comando('python3 /mnt/python.py --launch-apache');
                 break;
             case '--continue-apache':
-                echo ejecutar_comando('python3 /var/python.py --continue-apache');
+                echo ejecutar_comando('python3 /mnt/python.py --continue-apache');
                 break;
             case '--eliminar-apache':
-                echo ejecutar_comando('python3 /var/python.py --eliminar-apache');
+                echo ejecutar_comando('python3 /mnt/python.py --eliminar-apache');
                 break;
             default:
                 echo "Acción no válida.";
@@ -32,6 +32,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Enlace para volver a la página de inicio
-echo '<a href="admin.html">Volver a la página de inicio</a>';
 ?>
+<html>
+    <head>
+        <meta charset="utf8">
+    </head>
+    <body>
+        <a href="admin.html">Volver a la página de inicio</a>
+    </body>
+</html>

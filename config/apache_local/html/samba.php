@@ -15,16 +15,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Comando dependiendo de la acción
         switch ($accion) {
             case '--stop-samba':
-                echo ejecutar_comando('python3 /var/python.py --stop-samba');
+                echo ejecutar_comando('python3 /mnt/python.py --stop-samba');
                 break;
             case '--launch-samba':
-                echo ejecutar_comando('python3 /var/python.py --launch-samba');
+                echo ejecutar_comando('python3 /mnt/python.py --launch-samba');
                 break;
             case '--continue-samba':
-                echo ejecutar_comando('python3 /var/python.py --continue-samba');
+                echo ejecutar_comando('python3 /mnt/python.py --continue-samba');
                 break;
             case '--eliminar-samba':
-                echo ejecutar_comando('python3 /var/python.py --eliminar-samba');
+                echo ejecutar_comando('python3 /mnt/python.py --eliminar-samba');
                 break;
             default:
                 echo "Acción no válida.";
@@ -32,6 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Enlace para volver a la página de inicio
-echo '<a href="admin.html">Volver a la página de inicio</a>';
+
 ?>
+<html>
+    <head>
+        <meta charset="utf8">
+    </head>
+    <body>
+        <a href="admin.html">Volver a la página de inicio</a>
+    </body>
+</html>
