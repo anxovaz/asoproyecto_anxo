@@ -50,10 +50,12 @@
         button.continue {
             background-color: #2196F3;
             color: white;
-        }button.erase {
+        }
+        button.erase {
             background-color: #fc0000;
             color: white;
-        }    </style>
+        }    
+    </style>
 </head>
 <body>
 
@@ -61,39 +63,38 @@
 
     <div class="container">
         <!-- Contenedor Apache -->
-         
         <div class="contenedor">
             <h2>Apache</h2>
             <p style="color: red;">*Contenedor esencial para administración</p>
             <form action="apache.php" method="POST">
-                <input type="hidden" name="contenedor" value="apache">
-                <button type="submit" name="accion" value="parar" class="stop">Parar</button>
-                <button type="submit" name="accion" value="arrancar" class="start">Arrancar</button>
-                <button type="submit" name="accion" value="continuar" class="continue">Continuar</button>
-                <button type="submit" name="accion" value="eliminar" class="erase">Continuar</button>
+                <button type="submit" name="accion" value="--stop-apache" class="stop">Parar</button>
+                <button type="submit" name="accion" value="--launch-apache" class="start">Arrancar</button>
+                <button type="submit" name="accion" value="--continue-apache" class="continue">Continuar</button>
+                <button type="submit" name="accion" value="--eliminar-apache" class="erase">Eliminar</button>
             </form>
         </div>
 
         <!-- Contenedor Bind9 -->
         <div class="contenedor">
             <h2>Bind9</h2>
+            <br><br>
             <form action="bind9.php" method="POST">
-                <input type="hidden" name="contenedor" value="bind9">
-                <button type="submit" name="accion" value="parar" class="stop">Parar</button>
-                <button type="submit" name="accion" value="arrancar" class="start">Arrancar</button>
-                <button type="submit" name="accion" value="continuar" class="continue">Continuar</button>
-                <button type="submit" name="accion" value="eliminar" class="erase">Continuar</button>
+                <button type="submit" name="accion" value="--stop-bind9" class="stop">Parar</button>
+                <button type="submit" name="accion" value="--launch-bind9" class="start">Arrancar</button>
+                <button type="submit" name="accion" value="--continue-bind9" class="continue">Continuar</button>
+                <button type="submit" name="accion" value="--eliminar-bind9" class="erase">Eliminar</button>
             </form>
         </div>
+
         <!-- Contenedor Samba -->
         <div class="contenedor">
             <h2>Samba</h2>
+            <br><br>
             <form action="samba.php" method="POST">
-                <input type="hidden" name="contenedor" value="bind9">
-                <button type="submit" name="accion" value="parar" class="stop">Parar</button>
-                <button type="submit" name="accion" value="arrancar" class="start">Arrancar</button>
-                <button type="submit" name="accion" value="continuar" class="continue">Continuar</button>
-                <button type="submit" name="accion" value="eliminar" class="erase">Continuar</button>
+                <button type="submit" name="accion" value="--stop-samba" class="stop">Parar</button>
+                <button type="submit" name="accion" value="--launch-samba" class="start">Arrancar</button>
+                <button type="submit" name="accion" value="--continue-samba" class="continue">Continuar</button>
+                <button type="submit" name="accion" value="--eliminar-samba" class="erase">Eliminar</button>
             </form>
         </div>
     </div>

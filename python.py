@@ -9,6 +9,24 @@ client = docker.from_env()
 current_directory = os.path.dirname(os.path.abspath(__file__))
 print(f"El directorio actual del script es: {current_directory}")
 
+def apache_local():
+    try:
+        subprocess.run(["sudo", "apt", "update", "-y"], check=True)
+        subprocess.run(["sudo", "apt", "autoremove", "apache2", "-y"], check=True)
+        subprocess.run(["sudo", "apt", "install", "apache2", "-y"], check=True)
+        ruta_conf_apache_local = "/config/apache_local/conf"
+        conf_apache_local = os.path.join(current_directory, ruta_conf_apache_local.lstrip('/'))
+        ruta_html_apache_local = "/config/apache_local/html"
+        html_apache_local = os.path.join(current_directory, ruta_html_apache_local.lstrip('/'))
+        subprocess.run(["sudo", "rm", "-rf", "/var/www/html/*"])
+        subprocess.run(["sudo", "cp", "-r", conf_apache_local, "/etc/apache2/"])
+        subprocess.run(["sudo", "cp", "-r", html_apache_local, "/var/www/"])
+        subprocess.run(["sudo", "systemctl", "start", "apache2"], check=True)
+        subprocess.run(["sudo", "systemctl", "enable", "apache2"], check=True)
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error al instalar: {e}")
+        
 def parar_systemresolved():
     try:
         subprocess.run(["sudo", "systemctl", "stop", "systemd-resolved"], check=True)
@@ -44,7 +62,28 @@ def parar_contenedor(parar_contenedor):
         print(f"Contenedor '{parar_contenedor}' detenido.")
     else:
         print(f"El contenedor '{parar_contenedor}' no existe.")
-  
+
+def eliminar_contenedor(nombre_contenedor):
+    try:
+        # Crear el cliente Docker
+        client = docker.from_env()
+
+        # Obtener el contenedor por nombre
+        container = client.containers.get(nombre_contenedor)
+
+        # Detener y eliminar el contenedor
+        container.stop()
+        container.remove()
+
+        print(f"Contenedor '{nombre_contenedor}' detenido y eliminado exitosamente.")
+    
+    except docker.errors.NotFound:
+        print(f"Error: El contenedor '{nombre_contenedor}' no se encuentra.")
+    except docker.errors.APIError as e:
+        print(f"Error al interactuar con la API de Docker: {e}")
+    except Exception as e:
+        print(f"Error inesperado: {e}")
+
 def continuar_contenedor(continuar_contenedor):
     client = docker.from_env()
     containers = client.containers.list(all=True)
@@ -64,26 +103,33 @@ def continuar_contenedor(continuar_contenedor):
         print(f"El contenedor '{continuar_contenedor}' no existe.")
 
 def crear_red():
+    import docker
+
+def crear_red():
     try:
         # Crear el cliente Docker
         client = docker.from_env()
 
-        # Crear la red con la subred especificada
-        red = client.networks.create(
-            "red",        # Nombre de la red
-            driver="bridge",   # Tipo de red (por ejemplo, "bridge", "host", "overlay")
-            ipam=docker.types.IPAMConfig(
-                pool_configs=[docker.types.IPAMPool(
-                    subnet="192.168.250.0/24",  # Subred especificada
-                )]
+        # Comprobar si la red ya existe
+        redes_existentes = client.networks.list(names=["red"])
+        if redes_existentes:
+            print("La red 'red' ya existe.")
+        else:
+            # Crear la red con la subred especificada
+            red = client.networks.create(
+                "red",        # Nombre de la red
+                driver="bridge",   # Tipo de red (por ejemplo, "bridge", "host", "overlay")
+                ipam=docker.types.IPAMConfig(
+                    pool_configs=[docker.types.IPAMPool(
+                        subnet="192.168.250.0/24",  # Subred especificada
+                    )]
+                )
             )
-        )
 
-        print(f"Red creada exitosamente con el driver 'bridge' y subnet '192.168.250.0/24'")
+            print(f"Red creada exitosamente con el driver 'bridge' y subnet '192.168.250.0/24'")
+    
     except docker.errors.APIError as e:
         print(f"Error al crear la red: {e}")
-
-# Llamar a la función para crear la red
 
 
 
@@ -133,7 +179,9 @@ def apacheserver():
     # Ruta adicional
     htdocs = "/config/apache/htdocs"
     html = os.path.join(current_directory, htdocs.lstrip('/'))  # Unir las rutas
-
+    script = "python.py"
+    ruta_script = os.path.join(current_directory, script.lstrip('/'))
+    print(f"a {ruta_script}")
     print(f"HTML: {html}")
 
     # Verificar si el archivo existe
@@ -144,7 +192,8 @@ def apacheserver():
             name=nombre_contenedor_apache,
             network="red",
             detach=True,
-            volumes={html: {"bind": "/var/www/html", "mode": "rw"}},
+            volumes={html: {"bind": "/var/www/html", "mode": "rw"},
+            ruta_script: {"bind": "/mnt/python.py", "mode": "rw"}},
             ports={'80/tcp': 80},
             # Configuración especial para IP fija
             networking_config={
@@ -225,6 +274,7 @@ def samba():
 
 # Verificar si el parámetro pasado es "samba"
 if len(sys.argv) > 1 and sys.argv[1] == "--launch-samba":
+    crear_red()
     samba()
 
 elif len(sys.argv) > 1 and sys.argv[1] == "--stop-samba":
@@ -233,7 +283,11 @@ elif len(sys.argv) > 1 and sys.argv[1] == "--stop-samba":
 elif len(sys.argv) > 1 and sys.argv[1] == "--continue-samba":
     continuar_contenedor("samba")
 
+elif len(sys.argv) > 1 and sys.argv[1] == "--eliminar-samba":
+    eliminar_contenedor("samba")
+
 elif len(sys.argv) > 1 and sys.argv[1] == "--launch-apache":
+    crear_red()
     apacheserver()
 
 elif len(sys.argv) > 1 and sys.argv[1] == "--stop-apache":
@@ -242,7 +296,11 @@ elif len(sys.argv) > 1 and sys.argv[1] == "--stop-apache":
 elif len(sys.argv) > 1 and sys.argv[1] == "--continue-apache":
     continuar_contenedor("apache")
 
+elif len(sys.argv) > 1 and sys.argv[1] == "--eliminar-apache":
+    eliminar_contenedor("apache")
+
 elif len(sys.argv) > 1 and sys.argv[1] == "--launch-bind9":
+    crear_red()
     parar_systemresolved()
     bind9server()
    
@@ -253,21 +311,30 @@ elif len(sys.argv) > 1 and sys.argv[1] == "--stop-bind9":
 elif len(sys.argv) > 1 and sys.argv[1] == "--continue-bind9":
     parar_systemresolved()
     continuar_contenedor("bind9")
-    
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--eliminar-bind9":
+    eliminar_contenedor("bind9")
+    reanudar_systemresolved()
+
 elif len(sys.argv) > 1 and sys.argv[1] == "--help":
     print("--launch-samba")
     print("--stop-samba")
     print("--continue-samba")
+    print("--eliminar-samba")
     print("--launch-apache")
     print("--stop-apache")
     print("--continue-apache")
+    print("--eliminar-apache")
     print("--launch-bind9")
     print("--stop-bind9")
     print("--continue-bind9")
+    print("--eliminar-bind9")
     print("--help")
 
 else:
+    apache_local()
+    crear_red()
     apacheserver()
     parar_systemresolved()
     bind9server()
-    crear_red()
+    
