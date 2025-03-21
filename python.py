@@ -4,10 +4,12 @@ import time
 import subprocess
 import sys
 
+import docker.errors
+
 client = docker.from_env()
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
-print(f"El directorio actual del script es: {current_directory}")
+
 
 def apache_local():
     try:
@@ -23,6 +25,7 @@ def apache_local():
         script_apache_local = os.path.join(current_directory, ruta_script)
         print("Copiando archivos de configuración")
         subprocess.run(["sudo", "rm", "-rf", "/var/www/html/*"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
+        subprocess.run(["sudo", "rm", "-rf", "/etc/apache2/*"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
         subprocess.run(["sudo", "cp", "-r", conf_apache_local, "/etc/apache2/"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
         subprocess.run(["sudo", "cp", "-r", html_apache_local, "/var/www/"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
         subprocess.run(["sudo", "cp", script_apache_local, "/mnt/"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
@@ -168,10 +171,6 @@ def eliminar_contenedor(nombre_contenedor):
         else:
             print(f"El contenedor '{nombre_contenedor}' no existe.")
     
-    except NotFound:
-        print(f"Error: El contenedor '{nombre_contenedor}' no se encuentra.")
-    except DockerException as e:
-        print(f"Error en la ejecución de la función eliminar_contenedor: {e}")
     except Exception as e:
         print(f"Error inesperado: {e}")
 
@@ -188,8 +187,7 @@ def apacheserver():
     html = os.path.join(current_directory, htdocs.lstrip('/'))  # Unir las rutas
     script = "python.py"
     ruta_script = os.path.join(current_directory, script.lstrip('/'))
-    print(f"a {ruta_script}")
-    print(f"HTML: {html}")
+
 
     # Verificar si el archivo existe
 
@@ -221,10 +219,9 @@ def bind9server():
     # Archivos
     dirconf = "/config/bind9/conf"
     conf_bind9_ruta = os.path.join(current_directory, dirconf.lstrip('/'))  # Unir las rutas
-    print(f"El directorio de conf: {conf_bind9_ruta}")
     dirzonas = "/config/bind9/zonas"
     zonas_bind9_ruta = os.path.join(current_directory, dirzonas.lstrip('/'))
-    print(f"El directorio de zonas: {zonas_bind9_ruta}")
+
 
     #comprobar si existe
     nombrecontenedor_bind9 = "bind9"
@@ -278,6 +275,71 @@ def samba():
     except docker.errors.APIError as e:
         print(f"Error al crear el contenedor: {e}")
 
+def mysql():
+    try:
+        eliminar_contenedor("mysql")
+        dir_data="/config/mysql/data"
+        data=os.path.join(current_directory, dir_data.lstrip('/'))
+        dir_cnf="/config/mysql/cnf"
+        cnf=os.path.join(current_directory,dir_cnf.lstrip('/'))
+        dir_script_bash="/config/mysql/root_acceso.sh"
+        script=os.path.join(current_directory,dir_script_bash.lstrip('/'))
+
+        nombrecontenedor_mysql="mysql"
+        client=docker.from_env()
+        container = client.containers.run(
+        "mysql:latest",  # Usar la imagen oficial de MySQL
+        "/bin/bash -c 'chmod +x /mnt/root_acceso.sh && /mnt/root_acceso.sh'", #docker logs mysql <-----------------------Arreglar
+        name=nombrecontenedor_mysql,
+        environment={
+            "MYSQL_ROOT_PASSWORD": "123456",
+            "MYSQL_ROOT_HOST": "%"
+            },
+        volumes={data: {"bind": "/var/lib/mysql", "mode": "rw"},
+                cnf: {"bind": "/etc/mysql", "mode": "rw"},
+                script: {"bind": "/mnt/root_acceso.sh", "mode": "rw"}},
+
+        network="red",
+        networking_config={
+                'red': client.api.create_endpoint_config(
+                    ipv4_address="192.168.250.40"
+                )
+            },
+        ports={'3306/tcp': 3306},  # Exponer el puerto 3306
+        detach=True,  # Ejecutar en segundo plano
+        )
+        print(f"Contenedor {nombrecontenedor_mysql} ejecutándose.")
+    except docker.errors.APIError as e:
+        print(f"Error al crear contenedor; {e}")
+
+def portainer():
+    client = docker.from_env()
+
+    nombrecontenedor_portainer = "portainer"
+    eliminar_contenedor(nombrecontenedor_portainer)
+    ruta_data="/config/portainer/data"
+    ruta_portainer_data=os.path.join(current_directory,ruta_data.lstrip('/'))
+
+
+    try:
+        container = client.containers.run(
+            "portainer/portainer-ce",
+            name=nombrecontenedor_portainer,
+            ports={"9000/tcp": 9000},
+            volumes={"/var/run/docker.sock": {"bind": "/var/run/docker.sock", "mode": "rw"},
+                    ruta_portainer_data: {"bind": "/data", "mode": "rw"}},
+            restart_policy={"Name": "always"},
+            network="red",
+            networking_config={
+                'red': client.api.create_endpoint_config(
+                    ipv4_address="192.168.250.50"
+                )
+            },
+            detach=True
+        )
+        print(f"Contenedor {nombrecontenedor_portainer} ejecutandose")
+    except docker.errors.APIError as e:
+        print(f"Error al crear el contenedor {e}")    
 
 # Verificar si el parámetro pasado es "samba"
 if len(sys.argv) > 1 and sys.argv[1] == "--launch-samba":
@@ -339,9 +401,28 @@ elif len(sys.argv) > 1 and sys.argv[1] == "--help":
     print("--help")
 
 else:
-    apache_local()
+    #apache_local()
     crear_red()
+    print("***********************************************************")
     apacheserver()
+    parar_contenedor("apache")
+    print("***********************************************************")
     parar_systemresolved()
     bind9server()
+    parar_contenedor("bind9")
+    reanudar_systemresolved()
+    print("***********************************************************")
+    samba()
+    parar_contenedor("samba")
+    print("***********************************************************")
+    mysql()
+    #parar_contenedor("mysql")
+    print("***********************************************************")
+    portainer()
     
+    
+#sudo docker volume create portainer_data    
+#sudo docker run -d -p 9000:9000 --name portainer --restart always \
+#  -v /var/run/docker.sock:/var/run/docker.sock \
+#  -v portainer_data:/data \
+#  portainer/portainer-ce
