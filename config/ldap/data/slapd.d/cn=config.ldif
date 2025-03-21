@@ -1,0 +1,14 @@
+# AUTO-GENERATED FILE - DO NOT EDIT!! Use ldapmodify.
+# CRC32 37d09c5f
+dn: cn=config
+objectClass: olcGlobal
+cn: config
+olcArgsFile: /opt/bitnami/openldap/var/run/slapd.args
+olcPidFile: /opt/bitnami/openldap/var/run/slapd.pid
+structuralObjectClass: olcGlobal
+entryUUID: 1c078bd2-9ad1-103f-996a-a54d1937434a
+creatorsName: cn=config
+createTimestamp: 20250321185031Z
+entryCSN: 20250321185031.686929Z#000000#000#000000
+modifiersName: cn=config
+modifyTimestamp: 20250321185031Z

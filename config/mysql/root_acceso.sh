@@ -1,5 +1,4 @@
 #!/bin/bash
-#!/bin/bash
 
 # Esperar activamente hasta que MySQL esté listo
 echo "Esperando a que MySQL esté listo para aceptar conexiones..."
