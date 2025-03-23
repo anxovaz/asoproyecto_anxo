@@ -1,13 +1,77 @@
-import docker
 import os
 import subprocess
 import sys
-import docker.errors
 import time
+try:
+    import docker
+    import docker.errors
+
+except Exception as e:
+    try:
+        print("La librería docker no está instalada")
+        print("Instalando la librería docker")
+        subprocess.run(['sudo', 'apt-get', 'update'], check=True) #apt update
+        #Instalar la librería docker
+        subprocess.run(["sudo", "apt", "install", "python3-pip"], check=True)
+        subprocess.run(['pip', 'install', 'docker'], check=True)
+    
+    except Exception as e:
+        print(f"Error al instalar librería docker: {e}")
+        exit(1)
 
 if os.geteuid() == 0: #si se ejecuta como root
     print("Script ejecutado como  root.")
     print("***********************************************************")
+    try:
+        #comando 'docker --version' para verificar si Docker está instalado
+        resultado = subprocess.run(['docker', '--version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        print(f"Docker está instalado: {resultado.stdout.decode().strip()}")
+    except Exception:
+        try:
+            print("Docker no está instalado.")
+            print("Instalando docker en 5 segundos, pulsa Ctrl+C para cancelar")
+            time.sleep(5) #esperar a 5
+            # Actualiza el sistema
+            subprocess.run(['sudo', 'apt-get', 'update'], check=True)
+
+            # Instala ca-certificates y curl
+            subprocess.run(['sudo', 'apt-get', 'install', '-y', 'ca-certificates', 'curl'], check=True)
+
+            # Crea el directorio para la llave GPG
+            subprocess.run(['sudo', 'install', '-m', '0755', '-d', '/etc/apt/keyrings'], check=True)
+
+            # Descarga y agrega la clave GPG de Docker
+            subprocess.run(['sudo', 'curl', '-fsSL', 'https://download.docker.com/linux/ubuntu/gpg', '-o', '/etc/apt/keyrings/docker.asc'], check=True)
+
+            # Cambia los permisos de la clave GPG
+            subprocess.run(['sudo', 'chmod', 'a+r', '/etc/apt/keyrings/docker.asc'], check=True)
+
+            # Añadir el repositorio de Docker
+            subprocess.run(
+                [
+                    'echo',
+                    f"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu "
+                    f"$(. /etc/os-release && echo \"${{UBUNTU_CODENAME:-$VERSION_CODENAME}}\") stable",
+                    '|', 'sudo', 'tee', '/etc/apt/sources.list.d/docker.list', '>', '/dev/null'
+                ],
+                check=True,
+                shell=True  # Necesario para ejecutar el comando con el 'echo' y la tubería '|'
+            )
+
+            # Vuelve a actualizar la lista de paquetes
+            subprocess.run(['sudo', 'apt-get', 'update'], check=True)
+
+            #Instalación docker
+            subprocess.run(["sudo", "apt-get", "install", "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"], check=True)
+
+            #Instalar la librería docker
+            subprocess.run(["sudo", "apt", "install", "python3-pip"], check=True)
+            subprocess.run(['pip', 'install', 'docker'], check=True)
+        except Exception as e2:
+            print(f"Error al instalar docker python-pip: {e2}")
+            exit(1)
+
 else: #si no se ejecuta como root
     print("Por favor ejecute el script con permisos de superusuario")
     exit(0)  # Salir si no se ejecuta con sudo
