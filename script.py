@@ -1,6 +1,5 @@
 import docker
 import os
-import time
 import subprocess
 import sys
 import docker.errors
@@ -16,7 +15,7 @@ current_directory = os.path.dirname(os.path.abspath(__file__))
 #Si este servicio se para el equipo host no podrá resolver nombres de dominio.
 #Si el contenedor con bind9 no está en ejecución no podrá resolver nombres de dominio
 #Si está en ejecución el equipo host usará ese contenedor para resolver nombres de dominio
-def parar_systemresolved():
+def parar_systemdresolved():
     try:
         subprocess.run(["sudo", "systemctl", "stop", "systemd-resolved"], check=True)
         print("Servicio systemd-resolved detenido exitosamente.")
@@ -27,7 +26,7 @@ def parar_systemresolved():
 
 #Cuando el contenedor se para (ya sea manualmente o desde portainer) el equipo host se queda con el servicio de resolución de nombres detenido.
 #Para ello reanudo el servicio de nombres cuando el contenedor se para/elimina/falla.
-def reanudar_systemresolved():
+def reanudar_systemdresolved():
     try:
         subprocess.run(["sudo", "systemctl", "restart", "systemd-resolved"], check=True)
         print("Servicio systemd-resolved reiniciado exitosamente.")
@@ -277,6 +276,7 @@ def phpmyadmin():
         ports={'80/tcp': 5000}, #puerto 5000, para que no colisione con el puerto 80 del contenedor apache
         detach=True, #segundo plano
     )
+        print("Contenedor phpmyadmin ejecutandose")
     except Exception as e: #error
         print(f"Error al arrancar contenedor phpmyadmin: {e}")
 
@@ -311,7 +311,8 @@ def ldap():
     },
     command="tail -f /dev/null", #comando para que no se cierre el contenedor
     detach=True #segundo plano
-)
+    )
+        print("Contenedor ldap ejecutandose")
 
     
     except Exception as e: #error
@@ -375,20 +376,20 @@ elif len(sys.argv) > 1 and sys.argv[1] == "--eliminar-apache":
 
 elif len(sys.argv) > 1 and sys.argv[1] == "--launch-bind9":
     crear_red()
-    parar_systemresolved()
+    parar_systemdresolved()
     bind9server()
    
 elif len(sys.argv) > 1 and sys.argv[1] == "--stop-bind9":
     parar_contenedor("bind9")
-    reanudar_systemresolved()
+    reanudar_systemdresolved()
 
 elif len(sys.argv) > 1 and sys.argv[1] == "--continue-bind9":
-    parar_systemresolved()
+    parar_systemdresolved()
     continuar_contenedor("bind9")
 
 elif len(sys.argv) > 1 and sys.argv[1] == "--eliminar-bind9":
     eliminar_contenedor("bind9")
-    reanudar_systemresolved()
+    reanudar_systemdresolved()
 
 elif len(sys.argv) > 1 and sys.argv[1] == "--help":
     print("--launch-samba")
@@ -412,10 +413,10 @@ else:
     apacheserver()
     parar_contenedor("apache")
     print("***********************************************************")
-    parar_systemresolved()
+    parar_systemdresolved()
     bind9server()
     parar_contenedor("bind9")
-    reanudar_systemresolved()
+    reanudar_systemdresolved()
     print("***********************************************************")
     samba()
     parar_contenedor("samba")
