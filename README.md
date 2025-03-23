@@ -1,37 +1,37 @@
 # Despliegue de Microservicios en Docker
-Anxo Vázquez Lorenzo
+Anxo Vázquez Lorenzo<br>
 Proyecto final Administración Sistemas Operativos
 
 ## Descripción
-Script en python que automáticamente desplega varios contenedores en docker con servicios "usuales" dentro de una red empresarial.
+Script en python que automáticamente desplega varios contenedores en docker con servicios "usuales" dentro de una red empresarial.<br>
 
-Para este proyecto se usan las siguientes librerías en python:
-·docker
-·os
-·subprocess
-·sys
-·docker.errors
+Para este proyecto se usan las siguientes librerías en python:<br>
+·docker<br>
+·os<br>
+·subprocess<br>
+·sys<br>
+·docker.errors<br>
 
-Se crean los siguientes servicios usando contenedores:
-·WEB (APACHE)
-·DNS (BIND9)
-·SISTEMA GESTOR DE BASES DE DATOS (MYSQL Y PHPMYADMIN)
-·SISTEMA PARA COMPARRTIR ARCHIVOS (SAMBA)
-·SISTEMA DE DIRECTORIO ACTIVO (LDAP)
-·SISTEMA GESTOR DE CONTENEDORES (PORTAINER)
+Se crean los siguientes servicios usando contenedores:<br>
+·WEB (APACHE)<br>
+·DNS (BIND9)<br>
+·SISTEMA GESTOR DE BASES DE DATOS (MYSQL Y PHPMYADMIN)<br>
+·SISTEMA PARA COMPARRTIR ARCHIVOS (SAMBA)<br>
+·SISTEMA DE DIRECTORIO ACTIVO (LDAP)<br>
+·SISTEMA GESTOR DE CONTENEDORES (PORTAINER)<br>
 
 ## FINALIDAD 
-La finalidad de este proyecto es crear un script en python que con tan solo ejecutarlo despliegue servicios útiles en una red empresarial pequeña.
+La finalidad de este proyecto es crear un script en python que con tan solo ejecutarlo despliegue servicios útiles en una red empresarial pequeña.<br>
 Para este proyecto uso contenedores devido a que son portables y que (en este proyecto) están principalmente orientados a ser ejecutados en un equipo normal de la empresa, si la empresa en algun comento quiere invertir en un servidor puede copiar los archivos de configuración de la carpeta ./config y no perder ninguna configuración de los contenedores.
 
 ## Accedo a las herramientas web
-·Apache: localhost:80
-·Portainer: localhost:50001
-·PhpMyAdmin: localhost:5000
+·Apache: localhost:80<br>
+·Portainer: localhost:50001<br>
+·PhpMyAdmin: localhost:5000<br>
 
 ## COMPATIBILIDAD
-Se ha probado la compatibilidad de este proyecto en:
-·Ubuntu 20.04.6 LTS
+Se ha probado la compatibilidad de este proyecto en:<br>
+·Ubuntu 20.04.6 LTS<br>
 
 ## Código
 ### docker.from_env()
@@ -79,8 +79,8 @@ networking_config={
 ```
 
 ### Mysql y Phpmyadmin
-Para poder gestionar de una forma más gráfica mysql uso phpmyadmin.
-Uno de los problemas fue la conexión de phpmyadmina a mysql ya que no podía usar el usuario root de mysql, para solucionarlo creé un usuario llamado "admin" con el campo "%" ('admin'@'%') para que se pudiese conectar desde cualquier equipo, además en el archivo my.cnf tiene que estar el campo "bind-address = 0.0.0.0".
+Para poder gestionar de una forma más gráfica mysql uso phpmyadmin.<br>
+Uno de los problemas fue la conexión de phpmyadmina a mysql ya que no podía usar el usuario root de mysql, para solucionarlo creé un usuario llamado "admin" con el campo "%" ('admin'@'%') para que se pudiese conectar desde cualquier equipo, además en el archivo my.cnf tiene que estar el campo "bind-address = 0.0.0.0".<br>
 Usuario:
 ```shell
 mysql -u root -p123456
