@@ -3,6 +3,17 @@ import os
 import subprocess
 import sys
 import docker.errors
+import time
+
+if os.geteuid() == 0: #si se ejecuta como root
+    print("Script ejecutado como  root.")
+    print("***********************************************************")
+else: #si no se ejecuta como root
+    print("Por favor ejecute el script con permisos de superusuario")
+    exit(0)  # Salir si no se ejecuta con sudo
+
+print("En 5 segundos se ejecutará el script, pulsa Ctrl+C para cancelar")
+time.sleep(5) #esperar a 5
 
 #Inicializar cliente docker
 client = docker.from_env()
@@ -358,7 +369,7 @@ elif len(sys.argv) > 1 and sys.argv[1] == "--stop-samba":
 elif len(sys.argv) > 1 and sys.argv[1] == "--continue-samba":
     continuar_contenedor("samba")
 
-elif len(sys.argv) > 1 and sys.argv[1] == "--eliminar-samba":
+elif len(sys.argv) > 1 and sys.argv[1] == "--remove-samba":
     eliminar_contenedor("samba")
 
 elif len(sys.argv) > 1 and sys.argv[1] == "--launch-apache":
@@ -371,7 +382,7 @@ elif len(sys.argv) > 1 and sys.argv[1] == "--stop-apache":
 elif len(sys.argv) > 1 and sys.argv[1] == "--continue-apache":
     continuar_contenedor("apache")
 
-elif len(sys.argv) > 1 and sys.argv[1] == "--eliminar-apache":
+elif len(sys.argv) > 1 and sys.argv[1] == "--remove-apache":
     eliminar_contenedor("apache")
 
 elif len(sys.argv) > 1 and sys.argv[1] == "--launch-bind9":
@@ -387,23 +398,103 @@ elif len(sys.argv) > 1 and sys.argv[1] == "--continue-bind9":
     parar_systemdresolved()
     continuar_contenedor("bind9")
 
-elif len(sys.argv) > 1 and sys.argv[1] == "--eliminar-bind9":
+elif len(sys.argv) > 1 and sys.argv[1] == "--remove-bind9":
     eliminar_contenedor("bind9")
     reanudar_systemdresolved()
 
+elif len(sys.argv) > 1 and sys.argv[1] == "--launch-mysql":
+    crear_red()
+    mysql()
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--stop-mysql":
+    parar_contenedor("mysql")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--continue-mysql":
+    continuar_contenedor("mysql")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--remove-mysql":
+    eliminar_contenedor("mysql")
+
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--launch-phpmyadmin":
+    crear_red()
+    phpmyadmin()
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--stop-phpmyadmin":
+    parar_contenedor("phpmyadmin")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--continue-phpmyadmin":
+    continuar_contenedor("phpmyadmin")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--remove-phpmyadmin":
+    eliminar_contenedor("phpmyadmin")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--launch-ldap":
+    crear_red()
+    ldap()
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--stop-ldap":
+    parar_contenedor("ldap")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--continue-ldap":
+    continuar_contenedor("ldap")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--remove-ldap":
+    eliminar_contenedor("ldap")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--launch-portainer":
+    crear_red()
+    portainer()
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--stop-portainer":
+    parar_contenedor("portainer")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--continue-portainer":
+    continuar_contenedor("portainer")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--remove-portainer":
+    eliminar_contenedor("portainer")
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--parar-systemdresolved":
+    parar_systemdresolved()
+
+elif len(sys.argv) > 1 and sys.argv[1] == "--reiniciar-systemdresolved":
+    reanudar_systemdresolved()
+
 elif len(sys.argv) > 1 and sys.argv[1] == "--help":
+    print("Para lanzar este script es necesario usar sudo o root directamente.")
+    print("El script creara los contenedores y los detendrá a todos menos al de portainer (localhost:5001) si se lanza sin parámetros.")
+    print("Parámetros:")
     print("--launch-samba")
     print("--stop-samba")
     print("--continue-samba")
-    print("--eliminar-samba")
+    print("--remove-samba")
     print("--launch-apache")
     print("--stop-apache")
     print("--continue-apache")
-    print("--eliminar-apache")
+    print("--remove-apache")
     print("--launch-bind9")
     print("--stop-bind9")
     print("--continue-bind9")
-    print("--eliminar-bind9")
+    print("--remove-bind9")
+    print("--launch-mysql")
+    print("--stop-mysql")
+    print("--continue-mysql")
+    print("--remove-mysql")
+    print("--launch-phpmyadmin")
+    print("--stop-phpmyadmin")
+    print("--continue-phpmyadmin")
+    print("--remove-phpmyadmin")
+    print("--launch-ldap")
+    print("--stop-ldap")
+    print("--continue-ldap")
+    print("--remove-ldap")
+    print("--launch-portainer")
+    print("--stop-portainer")
+    print("--continue-portainer")
+    print("--remove-portainer")
+    print("--parar-systemdresolved")
+    print("--reiniciar-systemdresolved")
     print("--help")
 
 else:
@@ -431,4 +522,5 @@ else:
     parar_contenedor("ldap")
     print("***********************************************************")
     print("admin, admin12345678")
+    print("localhost:5001")
     portainer()

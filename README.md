@@ -24,7 +24,7 @@ Se crean los siguientes servicios usando contenedores:<br>
 La finalidad de este proyecto es crear un script en python que con tan solo ejecutarlo despliegue servicios útiles en una red empresarial pequeña.<br>
 Para este proyecto uso contenedores devido a que son portables y que (en este proyecto) están principalmente orientados a ser ejecutados en un equipo normal de la empresa, si la empresa en algun comento quiere invertir en un servidor puede copiar los archivos de configuración de la carpeta ./config y no perder ninguna configuración de los contenedores.
 
-## Accedo a las herramientas web
+## Acceso a las herramientas web
 ·Apache: localhost:80<br>
 ·Portainer: localhost:50001<br>
 ·PhpMyAdmin: localhost:5000<br>
