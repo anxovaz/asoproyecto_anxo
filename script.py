@@ -8,13 +8,17 @@ try:
 
 except Exception as e:
     try:
-        print("La librería docker no está instalada")
-        print("Instalando la librería docker")
-        subprocess.run(['sudo', 'apt-get', 'update'], check=True) #apt update
-        #Instalar la librería docker
-        subprocess.run(["sudo", "apt", "install", "python3-pip"], check=True)
-        subprocess.run(['pip', 'install', 'docker'], check=True)
-    
+        if os.geteuid() == 0: #si se ejecuta como root
+            print("La librería docker no está instalada")
+            print("Instalando la librería docker")
+            subprocess.run(['sudo', 'apt-get', 'update'], check=True) #apt update
+            #Instalar la librería docker
+            subprocess.run(["sudo", "apt", "install", "python3-pip"], check=True)
+            subprocess.run(['pip', 'install', 'docker'], check=True)
+        else: #no hay permisos de root
+            print("Es necesario permisos de superusuario")
+            exit(0)
+
     except Exception as e:
         print(f"Error al instalar librería docker: {e}")
         exit(1)
