@@ -3,99 +3,62 @@ import os
 import time
 import subprocess
 import sys
-
 import docker.errors
 
+#Inicializar cliente docker
 client = docker.from_env()
 
+#Variable que usaré más adelante para definir rutas relativas y que los contenedores no tengan problemas con los volúmenes aunque el usuario final vaya alternando la ubicación del script y carpetas
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
-
-def apache_local():
-    try:
-        print("Reinstalando apache2...")
-        subprocess.run(["sudo", "apt", "update", "-y"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
-        subprocess.run(["sudo", "apt", "autoremove", "apache2", "-y"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
-        subprocess.run(["sudo", "apt", "install", "apache2", "-y"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
-        ruta_conf_apache_local = "/config/apache_local/conf"
-        conf_apache_local = os.path.join(current_directory, ruta_conf_apache_local.lstrip('/'))
-        ruta_html_apache_local = "/config/apache_local/html"
-        html_apache_local = os.path.join(current_directory, ruta_html_apache_local.lstrip('/'))
-        ruta_script = "python.py"
-        script_apache_local = os.path.join(current_directory, ruta_script)
-        print("Copiando archivos de configuración")
-        subprocess.run(["sudo", "rm", "-rf", "/var/www/html/*"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
-        subprocess.run(["sudo", "rm", "-rf", "/etc/apache2/*"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
-        subprocess.run(["sudo", "cp", "-r", conf_apache_local, "/etc/apache2/"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
-        subprocess.run(["sudo", "cp", "-r", html_apache_local, "/var/www/"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
-        subprocess.run(["sudo", "cp", script_apache_local, "/mnt/"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
-        subprocess.run(["sudo", "chmod", "777", "/mnt/python.py"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
-        subprocess.run(["sudo", "systemctl", "start", "apache2"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
-        subprocess.run(["sudo", "systemctl", "enable", "apache2"], check=True, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
-        print("Accede a localhost:8080 para administrar los contenedores")
-        
-    except subprocess.CalledProcessError as e:
-        print(f"Error al instalar: {e}")
-        
+#Para que el contenedor con bind9 funcione correctamente en el puerto 53 es necesario tener el puerto 53 del host libre
+#Puerto 53 ocupado por systemd-resolved, el de resolución de nombres de dominio
+#Si este servicio se para el equipo host no podrá resolver nombres de dominio.
+#Si el contenedor con bind9 no está en ejecución no podrá resolver nombres de dominio
+#Si está en ejecución el equipo host usará ese contenedor para resolver nombres de dominio
 def parar_systemresolved():
     try:
         subprocess.run(["sudo", "systemctl", "stop", "systemd-resolved"], check=True)
         print("Servicio systemd-resolved detenido exitosamente.")
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError as e: #Error
         print(f"Error al ejecutar el comando: {e}")
-    except FileNotFoundError:
+    except FileNotFoundError: #en el caso de (no tener/tener dañado) systemctl
         print("Comando no encontrado. Asegúrate de tener 'systemctl' instalado.")
 
+#Cuando el contenedor se para (ya sea manualmente o desde portainer) el equipo host se queda con el servicio de resolución de nombres detenido.
+#Para ello reanudo el servicio de nombres cuando el contenedor se para/elimina/falla.
 def reanudar_systemresolved():
     try:
         subprocess.run(["sudo", "systemctl", "restart", "systemd-resolved"], check=True)
         print("Servicio systemd-resolved reiniciado exitosamente.")
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError as e: #error
         print(f"Error al ejecutar el comando: {e}")
-    except FileNotFoundError:
+    except FileNotFoundError: #en el caso de (no tener/tener dañado) systemctl
         print("Comando no encontrado. Asegúrate de tener 'systemctl' instalado.")
 
+#Función para parar contenedores (por defecto se ejecutan y después se paran)
 def parar_contenedor(parar_contenedor):
-    client = docker.from_env()
+    #Lista los contenedores en el equipo
     containers = client.containers.list(all=True)
+    #Variable de control
     container_exists = False
-    container_to_remove = None
 
+    #Bucle que recorre los contenedores listados en el equipo
     for container in containers:
+        #condicion que analiza la variable pasada a la función funcion(variable)
         if container.name == parar_contenedor:
-            container_exists = True
-            container_to_stop = container
-            break
-    if container_exists:
+            container_exists = True #Variable de control
+            container_to_stop = container #Buelca en la variable container_to_stop el contenedor a parar
+            break #Sale del bucle
+    if container_exists: #TRUE
         print(f"Contenedor '{parar_contenedor}' encontrado, deteniéndolo.")
-        container_to_stop.stop()  # Detener el contenedor si está en ejecución
+        container_to_stop.stop()  # Detener el contenedor si está en ejecución usando .stop()
         print(f"Contenedor '{parar_contenedor}' detenido.")
-    else:
+    else: #FALSE
         print(f"El contenedor '{parar_contenedor}' no existe.")
 
-def eliminar_contenedor(nombre_contenedor):
-    try:
-        # Crear el cliente Docker
-        client = docker.from_env()
-
-        # Obtener el contenedor por nombre
-        container = client.containers.get(nombre_contenedor)
-
-        # Detener y eliminar el contenedor
-        container.stop()
-        container.remove()
-
-        print(f"Contenedor '{nombre_contenedor}' detenido y eliminado exitosamente.")
-    
-    except docker.errors.NotFound:
-        print(f"Error: El contenedor '{nombre_contenedor}' no se encuentra.")
-    except docker.errors.APIError as e:
-        print(f"Error al interactuar con la API de Docker: {e}")
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-
+#Función que sirve para reanudar contenedor, funciona igual que parar_contenedor()
 def continuar_contenedor(continuar_contenedor):
-    client = docker.from_env()
     containers = client.containers.list(all=True)
     container_exists = False
     container_to_continue = None
@@ -107,50 +70,24 @@ def continuar_contenedor(continuar_contenedor):
             break
     if container_exists:
         print(f"Contenedor '{continuar_contenedor}' encontrado, continuándolo.")
-        container_to_continue.start()  # Detener el contenedor si está en ejecución
+        container_to_continue.start()  #Reanudar contenedor
         print(f"Contenedor '{continuar_contenedor}' reanuado.")
     else:
         print(f"El contenedor '{continuar_contenedor}' no existe.")
 
 
-def crear_red():
-    try:
-        # Crear el cliente Docker
-        client = docker.from_env()
-
-        # Comprobar si la red ya existe
-        redes_existentes = client.networks.list(names=["red"])
-        if redes_existentes:
-            print("La red 'red' ya existe.")
-        else:
-            # Crear la red con la subred especificada
-            red = client.networks.create(
-                "red",        # Nombre de la red
-                driver="bridge",   # Tipo de red (por ejemplo, "bridge", "host", "overlay")
-                ipam=docker.types.IPAMConfig(
-                    pool_configs=[docker.types.IPAMPool(
-                        subnet="192.168.250.0/24",  # Subred especificada
-                    )]
-                )
-            )
-
-            print(f"Red creada exitosamente con el driver 'bridge' y subnet '192.168.250.0/24'")
-    
-    except docker.errors.APIError as e:
-        print(f"Error al crear la red: {e}")
-
-
-
+#función para eliminar contenedores
+#Esta función no se usa en la gran mayoría de casos, ya que usando la herramienta PORTAINER se pueden eliminar los contenedores, solo see usará si el usuario lo especifica (por parámetro) junto a la acción de lanzar el script
+#Funciona al igual que parar_contenedor o continuar_contenedor
 def eliminar_contenedor(nombre_contenedor):
     try:
-        # Obtener todos los contenedores (incluyendo detenidos)
+        # Obtener todos los contenedores 
         containers = client.containers.list(all=True)
 
         # Inicializar la variable que indicará si el contenedor existe
         container_exists = False
         container_to_remove = None
 
-        # Iterar sobre los contenedores para buscar el que tenga el nombre especificado
         for container in containers:
             if container.name == nombre_contenedor:
                 container_exists = True
@@ -161,129 +98,146 @@ def eliminar_contenedor(nombre_contenedor):
         if container_exists:
             print(f"Contenedor '{nombre_contenedor}' encontrado. Deteniéndolo y eliminándolo.")
             container_to_remove.stop()  # Detener el contenedor si está en ejecución
-            container_to_remove.remove()  # Eliminar el contenedor
+            container_to_remove.remove()  # Eliminar el contenedor (.remove())
             print(f"Contenedor '{nombre_contenedor}' detenido y eliminado.")
         else:
             print(f"El contenedor '{nombre_contenedor}' no existe.")
     
-    except Exception as e:
+    except Exception as e: #error
         print(f"Error inesperado: {e}")
 
 
+#Función para crear red en docker
+#Creo todos los contenedores dentro de esta red virtual para asignarles IPs fijas
+def crear_red():
+    try:
+        # Comprobar si la red ya existe
+        redes_existentes = client.networks.list(names=["red"])
+        if redes_existentes: #si hay alguna red con el nombre "red"
+            print("La red 'red' ya existe.")
+        else: #si no hay
+            # Crear la red con la subred especificada
+            red = client.networks.create(
+                "red",        # Nombre de la red
+                driver="bridge",   # Adaptador
+                ipam=docker.types.IPAMConfig( #configuración
+                    pool_configs=[docker.types.IPAMPool( #Red
+                        subnet="192.168.250.0/24",  # Subred especificada
+                    )]
+                )
+            )
+
+            print(f"Red creada exitosamente con el driver 'bridge' y subnet '192.168.250.0/24'")
+    
+    except docker.errors.APIError as e: #error
+        print(f"Error al crear la red: {e}")
+
+#Contenedor con apache
 def apacheserver():
-    nombre_contenedor_apache = "apache"
-    eliminar_contenedor(nombre_contenedor_apache)
+    eliminar_contenedor("apache") #Si existe lo elimina
 
     # Ruta adicional
     htdocs = "/config/apache/htdocs"
     html = os.path.join(current_directory, htdocs.lstrip('/'))  # Unir las rutas
 
-
-
-    # Verificar si el archivo existe
-
     try:
         container = client.containers.run(
-            "php:7.4-apache",
-            name=nombre_contenedor_apache,
-            network="red",
-            detach=True,
-            volumes={html: {"bind": "/var/www/html", "mode": "rw"}},
-            ports={'80/tcp': 80},
+            "php:7.4-apache", #imagen
+            name="apache",
+            network="red", #red (es obligatorio especificarla aunque se especifique con network_config más adelante)
+            detach=True, #segundo plano
+            volumes={html: {"bind": "/var/www/html", "mode": "rw"}}, #voluumen que monta el archivo index.html
+            ports={'80/tcp': 80}, #puerto 80
             # Configuración especial para IP fija
             networking_config={
                 'red': client.api.create_endpoint_config(
-                    ipv4_address="192.168.250.10"
+                    ipv4_address="192.168.250.10" #ip fija
                 )
             }
         )
-        print(f"Contenedor {nombre_contenedor_apache} ejecutándose. Accede a http://localhost o  ejemploanxo.com en tu navegador.")
-    except docker.errors.APIError as e:
+        print("Contenedor apache ejecutándose. Accede a http://localhost o  ejemploanxo.com en tu navegador.")
+    except docker.errors.APIError as e: #error
         print(f"Error al crear el contenedor: {e}")
 
-
+#Contenedor con bind9
 def bind9server():
+    #Carpetas de configuración
     dirconf = "/config/bind9/conf"
     conf_bind9_ruta = os.path.join(current_directory, dirconf.lstrip('/'))  # Unir las rutas
     dirzonas = "/config/bind9/zonas"
     zonas_bind9_ruta = os.path.join(current_directory, dirzonas.lstrip('/'))
 
-
-    #comprobar si existe
-    nombrecontenedor_bind9 = "bind9"
-    eliminar_contenedor(nombrecontenedor_bind9)
+    eliminar_contenedor("bind9") #eliminar contenedor
     try:
         container = client.containers.run(
-            "ubuntu/bind9",
-            name=nombrecontenedor_bind9,
-            network="red",
-            detach=True,
-            volumes={conf_bind9_ruta: {"bind": "/etc/bind", "mode": "ro"},
-                    zonas_bind9_ruta: {"bind": "/var/lib/bind", "mode": "rw"}},
-            ports={'53/tcp': 53, "53/udp": 53},
+            "ubuntu/bind9", #imagen
+            name="bind9",
+            network="red", #red
+            detach=True, #segundo plano
+            volumes={conf_bind9_ruta: {"bind": "/etc/bind", "mode": "ro"}, #/etc/bind
+                    zonas_bind9_ruta: {"bind": "/var/lib/bind", "mode": "rw"}}, #/var/lib/bind
+            ports={'53/tcp': 53, "53/udp": 53}, #puerto 53, entraría en conflicto con systemd-resolved pero cuando se lanza el contenedor más adelante se usa la función parar_systemresolved()
             networking_config={
                 'red': client.api.create_endpoint_config(
-                    ipv4_address="192.168.250.20"
+                    ipv4_address="192.168.250.20" #ip fija
                 )
             }
         )
-        print(f"Contenedor {nombrecontenedor_bind9} ejecutándose.")
-    except docker.errors.APIError as e:
+        print("Contenedor bind9 ejecutándose.")
+    except docker.errors.APIError as e: #errores
         print(f"Error al crear el contenedor: {e}")
 
-
+#contenedor con samba
 def samba():
-    compartido = "/config/samba/compartido"
+    #Carpetas
+    compartido = "/config/samba/compartido" #carpeta a compartir
     dircompartido = os.path.join(current_directory, compartido.lstrip('/'))
-    confsmb = "/config/samba/config"
+    confsmb = "/config/samba/config" #directorio configuración
     dirconfigsamba = os.path.join(current_directory, confsmb.lstrip('/'))
 
-    nombrecontenedor_samba = "samba"
-    eliminar_contenedor(nombrecontenedor_samba)
+    eliminar_contenedor("samba")
 
     try:
         container = client.containers.run(
-            "dperson/samba",
-            name=nombrecontenedor_samba,
-            network="red",
-            detach=True,
-            volumes={dirconfigsamba: {"bind": "/etc/samba", "mode": "rw"},
-                    dircompartido: {"bind": "/mnt/compartido", "mode": "rw"}},
+            "dperson/samba", #imagen
+            name="samba",
+            network="red", #red
+            detach=True, #segundo plano
+            volumes={dirconfigsamba: {"bind": "/etc/samba", "mode": "rw"}, #/etc/samba
+                    dircompartido: {"bind": "/mnt/compartido", "mode": "rw"}}, #/mnt/compartido
             ports={'139/tcp': 139, '445/tcp': 445},
             networking_config={
                 'red': client.api.create_endpoint_config(
-                    ipv4_address="192.168.250.30"
+                    ipv4_address="192.168.250.30" #ipfija
                 )
             }
         )
-        print(f"Contenedor {nombrecontenedor_samba} ejecutándose.")
-    except docker.errors.APIError as e:
+        print("Contenedor samba ejecutándose.")
+    except docker.errors.APIError as e: #error
         print(f"Error al crear el contenedor: {e}")
 
+#Contenedor con mysql
 def mysql():
     try:
-        eliminar_contenedor("mysql")
-        dir_data="/config/mysql/data"
-        data=os.path.join(current_directory, dir_data.lstrip('/'))
-        dir_cnf="/config/mysql/cnf"
-        cnf=os.path.join(current_directory,dir_cnf.lstrip('/'))
-        dir_script_bash="/config/mysql/root_acceso.sh"
-        script=os.path.join(current_directory,dir_script_bash.lstrip('/'))
+        #Carpetas
+        eliminar_contenedor("mysql")#eliminar contenedor
 
-        nombrecontenedor_mysql="mysql"
-        client=docker.from_env()
+        dir_data="/config/mysql/data"
+        data=os.path.join(current_directory, dir_data.lstrip('/')) #Datos
+        #IMPORTANTE en ./config/mysql/conf/my.cnf incluir "bind-address = 0.0.0.0" para permitir el acceso remoto (y además poderlo usar con phpmyadmin)
+        dir_cnf="/config/mysql/cnf"
+        cnf=os.path.join(current_directory,dir_cnf.lstrip('/')) #Configuración
+
         container = client.containers.run(
         "mysql:latest",  # Usar la imagen oficial de MySQL
-        name=nombrecontenedor_mysql,
+        name="mysql",
         environment={
             "MYSQL_ROOT_PASSWORD": "123456",
             "MYSQL_ROOT_HOST": "%"
             },
-        volumes={data: {"bind": "/var/lib/mysql", "mode": "rw"},
-                cnf: {"bind": "/etc/mysql", "mode": "rw"},
-                script: {"bind": "/mnt/root_acceso.sh", "mode": "rw"}},
-
-        network="red",
+        volumes={data: {"bind": "/var/lib/mysql", "mode": "rw"}, #/var/lib/mysql
+                cnf: {"bind": "/etc/mysql", "mode": "rw"}}, #/etc/mysql
+        network="red", #red
         networking_config={
                 'red': client.api.create_endpoint_config(
                     ipv4_address="192.168.250.40"
@@ -292,97 +246,104 @@ def mysql():
         ports={'3306/tcp': 3306},  # Exponer el puerto 3306
         detach=True,  # Ejecutar en segundo plano
         )
-        print(f"Contenedor {nombrecontenedor_mysql} ejecutándose.")
-    except docker.errors.APIError as e:
+        print("Contenedor mysql ejecutándose.")
+    except docker.errors.APIError as e: #errores
         print(f"Error al crear contenedor; {e}")
 
+#Contenedor con phpmyadmin
+#Para poder usar mysql de forma más gráfica uso phpmyadmin con el usuario admin y contraseña "123456"
+#IMPORTANTE: El usuario admin ya fue creado, en el caso de borrar/modificar la carpeta "./config/mysql/data" se tendrá que acceder manualmente al contenedor mysql para crearlo 
+#IMPORTANTE: si se modifica el contenedor de phpmyadmin para que use el usuario root no funcionará ya que no se permite el acceso de root de forma remota ('root'@'localhost')
+#mysql -u root -p123456
+#create user 'admin'@'%' IDENTIFIED BY '123456';
 def phpmyadmin():
     try:
-        eliminar_contenedor("phpmyadmin")
+        eliminar_contenedor("phpmyadmin") #eliminar
         client.containers.run(
-        "phpmyadmin:latest",
+        "phpmyadmin:latest", #imagen
         name="phpmyadmin",
         environment={
             "PMA_HOST": "192.168.250.40",  # IP estática del contenedor MySQL
             "PMA_PORT": 3306,
-            "PMA_USER": "admin",
-            "PMA_PASSWORD": "123456"
+            "PMA_USER": "admin", #usuario 'admin'@'%', no usar root
+            "PMA_PASSWORD": "123456" #contraseña admin
         },
-        network="red",
+        network="red", #red
         networking_config={
                 'red': client.api.create_endpoint_config(
-                    ipv4_address="192.168.250.50"
+                    ipv4_address="192.168.250.50" #ip fija
                 )
             },
-        ports={'80/tcp': 5000},
-        detach=True,
+        ports={'80/tcp': 5000}, #puerto 5000, para que no colisione con el puerto 80 del contenedor apache
+        detach=True, #segundo plano
     )
-    except Exception as e:
+    except Exception as e: #error
         print(f"Error al arrancar contenedor phpmyadmin: {e}")
 
-#Arreglar
-def ldap():
+
+#contenedor con ldap
+def ldap(): 
     try:
+        #Carpetas
         eliminar_contenedor("ldap")
         ldap_data="/config/ldap/data"
-        ruta_ldap_data=os.path.join(current_directory,ldap_data.lstrip('/'))
+        ruta_ldap_data=os.path.join(current_directory,ldap_data.lstrip('/')) #Archivos
         ldap_conf="/config/ldap/conf"
-        ruta_ldap_conf=os.path.join(current_directory,ldap_conf.lstrip('/'))
-
-        os.makedirs(ruta_ldap_data, exist_ok=True)
-        os.makedirs(ruta_ldap_conf, exist_ok=True)
-        subprocess.run(f"sudo chown -R 1001:1001 {ruta_ldap_data}", shell=True)
-        subprocess.run(f"sudo chown -R 1001:1001 {ruta_ldap_conf}", shell=True)
+        ruta_ldap_conf=os.path.join(current_directory,ldap_conf.lstrip('/')) #Configurración
 
 
         client.containers.run(
-        "bitnami/openldap",
-        name="ldap",
-        ports={'389/tcp': 389, '636/tcp': 636},
-        network="red",
-        networking_config={
+    "bitnami/openldap",#imagen
+    name="ldap",
+    ports={'389/tcp': 389, '636/tcp': 636}, #puertos
+    network="red", #red
+    networking_config={
                 'red': client.api.create_endpoint_config(
-                    ipv4_address="192.168.250.60"
-                )
-            },
-        volumes={
-                ruta_ldap_conf: {'bind': '/opt/bitnami/openldap/etc', 'mode': 'rw'},
-                ruta_ldap_data: {'bind': '/bitnami/openldap', 'mode': 'rw'}
-            },
-        
-        detach=True,
-        )
+                    ipv4_address="192.168.250.60" #ip fija
+                )},
+    volumes={
+        ruta_ldap_conf: {'bind': '/opt/bitnami/openldap/etc', 'mode': 'rw'}, #/opt/bitnami/openldap/etc
+        ruta_ldap_data: {'bind': '/bitnami/openldap', 'mode': 'rw'} #/bitnami/openldap
+    },
+    environment={
+        'LDAP_ADMIN_PASSWORD': '123456', #contraseña admin
+        'LDAP_ROOT': 'dc=ejemploanxo,dc=com' #dominio
+    },
+    command="tail -f /dev/null", #comando para que no se cierre el contenedor
+    detach=True #segundo plano
+)
+
     
-    except Exception as e:
+    except Exception as e: #error
         print(f"Error al crear el contenedor ldap: {e}")
 
+#Portainer
 def portainer():
-    client = docker.from_env()
+    eliminar_contenedor("portainer") #eliminar
 
-    nombrecontenedor_portainer = "portainer"
-    eliminar_contenedor(nombrecontenedor_portainer)
-    ruta_data="/config/portainer/data"
-    ruta_portainer_data=os.path.join(current_directory,ruta_data.lstrip('/'))
+    ruta_data="/config/portainer/data" 
+    ruta_portainer_data=os.path.join(current_directory,ruta_data.lstrip('/')) #datos
 
 
     try:
         container = client.containers.run(
-            "portainer/portainer-ce",
-            name=nombrecontenedor_portainer,
-            ports={"9000/tcp": 5001},
-            volumes={"/var/run/docker.sock": {"bind": "/var/run/docker.sock", "mode": "rw"},
-                    ruta_portainer_data: {"bind": "/data", "mode": "rw"}},
-            restart_policy={"Name": "always"},
-            network="red",
+            "portainer/portainer-ce", #imagen
+            name="portainer",
+            ports={"9000/tcp": 5001}, #puerto
+            #Para que el contenedor portainer pueda tener acceso a otros contenedores le monto el volumen con datos y el archivo local del equipo (/var/run/docker.sock)
+            volumes={"/var/run/docker.sock": {"bind": "/var/run/docker.sock", "mode": "rw"}, #docker.sock
+                    ruta_portainer_data: {"bind": "/data", "mode": "rw"}}, #datos
+            restart_policy={"Name": "always"}, #controla cómo un contenedor debe reiniciarse si se detiene o si el sistema se reinicia.
+            network="red", #red
             networking_config={
                 'red': client.api.create_endpoint_config(
-                    ipv4_address="192.168.250.70"
+                    ipv4_address="192.168.250.70" #ip fija
                 )
             },
-            detach=True
+            detach=True #segundo plano
         )
-        print(f"Contenedor {nombrecontenedor_portainer} ejecutandose")
-    except docker.errors.APIError as e:
+        print("Contenedor portainer ejecutandose")
+    except docker.errors.APIError as e: #error
         print(f"Error al crear el contenedor {e}")    
 
 # Verificar si el parámetro pasado es "samba"
@@ -466,7 +427,7 @@ else:
     parar_contenedor("phpmyadmin")
     print("**********************************************************")
     ldap()
-    #parar_contenedor("ldap")
+    parar_contenedor("ldap")
     print("***********************************************************")
     print("admin, admin12345678")
     portainer()
