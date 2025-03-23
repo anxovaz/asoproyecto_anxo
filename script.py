@@ -13,8 +13,7 @@ except Exception as e:
             print("Instalando la librería docker")
             subprocess.run(['sudo', 'apt-get', 'update'], check=True) #apt update
             #Instalar la librería docker
-            subprocess.run(["sudo", "apt", "install", "python3-pip"], check=True)
-            subprocess.run(['pip', 'install', 'docker'], check=True)
+            subprocess.run(["sudo", "apt", "install", "python3-docker"], check=True)
         else: #no hay permisos de root
             print("Es necesario permisos de superusuario")
             exit(0)
@@ -52,16 +51,12 @@ if os.geteuid() == 0: #si se ejecuta como root
             subprocess.run(['sudo', 'chmod', 'a+r', '/etc/apt/keyrings/docker.asc'], check=True)
 
             # Añadir el repositorio de Docker
-            subprocess.run(
-                [
-                    'echo',
-                    f"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu "
-                    f"$(. /etc/os-release && echo \"${{UBUNTU_CODENAME:-$VERSION_CODENAME}}\") stable",
-                    '|', 'sudo', 'tee', '/etc/apt/sources.list.d/docker.list', '>', '/dev/null'
-                ],
-                check=True,
-                shell=True  # Necesario para ejecutar el comando con el 'echo' y la tubería '|'
+            command = (
+            'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] '
+            'https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \"${UBUNTU_CODENAME:-$VERSION_CODENAME}\") stable" '
+            '| sudo tee /etc/apt/sources.list.d/docker.list > /dev/null'
             )
+            subprocess.run(command, check=True, shell=True)
 
             # Vuelve a actualizar la lista de paquetes
             subprocess.run(['sudo', 'apt-get', 'update'], check=True)
@@ -70,8 +65,8 @@ if os.geteuid() == 0: #si se ejecuta como root
             subprocess.run(["sudo", "apt-get", "install", "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"], check=True)
 
             #Instalar la librería docker
-            subprocess.run(["sudo", "apt", "install", "python3-pip"], check=True)
-            subprocess.run(['pip', 'install', 'docker'], check=True)
+            subprocess.run(["sudo", "apt", "install", "python3-docker"], check=True)
+
         except Exception as e2:
             print(f"Error al instalar docker python-pip: {e2}")
             exit(1)
