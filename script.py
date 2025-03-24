@@ -80,8 +80,9 @@ else: #si no se ejecuta como root
     print("Por favor ejecute el script con permisos de superusuario")
     exit(0)  # Salir si no se ejecuta con sudo
 
-print("En 5 segundos se ejecutará el script, pulsa Ctrl+C para cancelar")
-time.sleep(5) #esperar a 5
+if len(sys.argv) > 1 and sys.argv[1] != "--help":
+    print("En 5 segundos se ejecutará el script, pulsa Ctrl+C para cancelar")
+    time.sleep(5) #esperar a 5
 
 #Inicializar cliente docker
 client = docker.from_env()
