@@ -32,7 +32,7 @@ Para este proyecto uso contenedores devido a que son portables y que (en este pr
 ## COMPATIBILIDAD
 Se ha probado la compatibilidad de este proyecto en:<br>
 ·Ubuntu 20.04.6 LTS<br>
-·Ubuntu 24.04.2 LTS<br>
+
 
 ## Código
 ### docker.from_env()
