@@ -70,7 +70,8 @@ if os.geteuid() == 0: #si se ejecuta como root
             # Después de instalar Docker
             subprocess.run(["sudo", "usermod", "-aG", "docker", os.getenv('USER')])
             print("Reinicia sesión para aplicar permisos Docker")
-
+            exit(3)
+            
         except Exception as e2:
             print(f"Error al instalar docker python-pip: {e2}")
             exit(1)
